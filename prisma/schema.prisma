@@ -8,13 +8,15 @@ datasource db {
 }
 
 model Asset {
-  uid          Int           @id @default(autoincrement())
-  assetId      Int           @unique(map: "hodler_asset_id_key") @map("asset_id")
-  hodlerId     Int           @map("hodler_id")
-  collectionId Int           @map("collection_id")
-  customName   String?       @map("custom_name") @db.VarChar
-  collection   Collection    @relation(fields: [collectionId], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "fk_collection")
-  hodler       DiscordHodler @relation(fields: [hodlerId], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "fk_hodler")
+  uid             Int            @id @default(autoincrement())
+  assetId         Int            @unique(map: "hodler_asset_id_key") @map("asset_id")
+  discordHodlerId Int?           @map("discord_hodler_id")
+  collectionId    Int            @map("collection_id")
+  customName      String?        @map("custom_name") @db.VarChar
+  createdAt       DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt       DateTime?      @updatedAt @map("updated_at")
+  collection      Collection     @relation(fields: [collectionId], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "fk_collection")
+  discordHodler   DiscordHodler? @relation(fields: [discordHodlerId], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "fk_hodler")
 
   @@map("asset")
 }
@@ -46,6 +48,7 @@ model DiscordHodler {
   discordName String    @map("discord_name") @db.VarChar
   publicKey   String    @unique @map("public_key") @db.VarChar
   createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime? @updatedAt @map("updated_at")
   assets      Asset[]
 
   @@map("discord_hodler")
