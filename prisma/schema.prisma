@@ -13,7 +13,7 @@ model Asset {
   discordHodlerId Int?           @map("discord_hodler_id")
   collectionId    Int            @map("collection_id")
   customName      String?        @map("custom_name") @db.VarChar
-  createdAt       DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
+  createdAt       DateTime?      @default(now()) @map("created_at")
   updatedAt       DateTime?      @updatedAt @map("updated_at")
   collection      Collection     @relation(fields: [collectionId], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "fk_collection")
   discordHodler   DiscordHodler? @relation(fields: [discordHodlerId], references: [uid], onDelete: NoAction, onUpdate: NoAction, map: "fk_hodler")
@@ -31,13 +31,14 @@ model Collection {
 }
 
 model FaceOfTheMonth {
-  uid             Int       @id @default(autoincrement())
-  assetId         Int       @map("asset_id")
-  monthYear       String?   @map("month_year") @db.VarChar
-  hodlerPublicKey String?   @map("hodler_public_key") @db.VarChar
-  rewardAmount    Int?      @map("reward_amount")
-  rewardAssetId   Int?      @map("reward_asset_id")
-  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  uid             Int         @id @default(autoincrement())
+  assetId         Int         @map("asset_id")
+  monthYear       String?     @map("month_year") @db.VarChar
+  hodlerPublicKey String?     @map("hodler_public_key") @db.VarChar
+  rewardAmount    Int?        @map("reward_amount")
+  rewardAssetId   Int?        @map("reward_asset_id")
+  createdAt       DateTime?   @default(now()) @map("created_at")
+  StupidFace      StupidFace? @relation(fields: [assetId], references: [assetId])
 
   @@map("face_of_the_month")
 }
@@ -47,9 +48,58 @@ model DiscordHodler {
   discordId   String    @unique @map("discord_id") @db.VarChar
   discordName String    @map("discord_name") @db.VarChar
   publicKey   String    @unique @map("public_key") @db.VarChar
-  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  createdAt   DateTime? @default(now()) @map("created_at")
   updatedAt   DateTime? @updatedAt @map("updated_at")
   assets      Asset[]
+  hodler      Hodler?
 
   @@map("discord_hodler")
+}
+
+model Hodler {
+  uid           Int            @id @default(autoincrement())
+  publicKey     String         @unique @map("public_key") @db.VarChar
+  discordHodler DiscordHodler? @relation(fields: [publicKey], references: [publicKey])
+  stupidFaces   StupidFace[]
+
+  @@map("hodler")
+}
+
+model StupidFace {
+  uid              Int               @id @default(autoincrement())
+  number           Int               @unique
+  assetId          Int               @unique @map("asset_id")
+  assetName        String            @map("asset_name") @db.VarChar
+  unitName         String            @map("unit_name") @db.VarChar
+  imageUrl         String            @map("image_url") @db.VarChar
+  blockday         DateTime
+  ipfsHash         String?           @map("ipfs_hash")
+  adoptionName     String?           @map("adoption_name")
+  quote            String?           @db.VarChar
+  bio              String?           @db.Text
+  hodler           Hodler?           @relation(fields: [hodlerPublicKey], references: [publicKey])
+  fotmWins         FaceOfTheMonth[]
+  hodlerPublicKey  String?           @map("hodler_public_key")
+  randomAttributes RandomAttributes? @relation("randomAttributes")
+  relatedFace      RandomAttributes? @relation("relation")
+  createdAt        DateTime?         @default(now()) @map("created_at")
+  updatedAt        DateTime?         @updatedAt @map("updated_at")
+
+  @@map("stupid_face")
+}
+
+model RandomAttributes {
+  uid                Int        @id @default(autoincrement())
+  stupidFace         StupidFace @relation("randomAttributes", fields: [stupidFaceAssetId], references: [assetId])
+  stupidFaceAssetId  Int        @unique
+  stupidityLevel     String     @map("stupidity_level")
+  character          String
+  quirk              String
+  favouriteMovie     String     @map("favourite_movie")
+  placeToSleep       String     @map("place_to_sleep")
+  relatedFace        StupidFace @relation("relation", fields: [relatedFaceAssetId], references: [assetId])
+  relatedFaceAssetId Int        @unique
+  relation           String
+
+  @@map("random_attributes")
 }
