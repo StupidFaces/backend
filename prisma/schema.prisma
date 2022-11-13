@@ -48,10 +48,13 @@ model DiscordHodler {
   discordId   String    @unique @map("discord_id") @db.VarChar
   discordName String    @map("discord_name") @db.VarChar
   publicKey   String    @unique @map("public_key") @db.VarChar
+  assets      Asset[]
+  hodler      Hodler?   @relation(fields: [hodlerUid], references: [uid])
+  hodlerUid   Int?      @unique @map("hodler_uid")
+  location    String?   @db.VarChar
+  lastGm      DateTime? @map("last_gm")
   createdAt   DateTime? @default(now()) @map("created_at")
   updatedAt   DateTime? @updatedAt @map("updated_at")
-  assets      Asset[]
-  hodler      Hodler?
 
   @@map("discord_hodler")
 }
@@ -59,8 +62,10 @@ model DiscordHodler {
 model Hodler {
   uid           Int            @id @default(autoincrement())
   publicKey     String         @unique @map("public_key") @db.VarChar
-  discordHodler DiscordHodler? @relation(fields: [publicKey], references: [publicKey])
   stupidFaces   StupidFace[]
+  StupidQuote   StupidQuote[]
+  StupidStory   StupidStory[]
+  DiscordHodler DiscordHodler?
 
   @@map("hodler")
 }
@@ -75,8 +80,8 @@ model StupidFace {
   blockday         DateTime
   ipfsHash         String?           @map("ipfs_hash")
   adoptionName     String?           @map("adoption_name")
-  quote            String?           @db.VarChar
-  bio              String?           @db.Text
+  stupidQuote      StupidQuote?
+  stupidStory      StupidStory?
   hodler           Hodler?           @relation(fields: [hodlerPublicKey], references: [publicKey])
   fotmWins         FaceOfTheMonth[]
   hodlerPublicKey  String?           @map("hodler_public_key")
@@ -88,17 +93,43 @@ model StupidFace {
   @@map("stupid_face")
 }
 
+model StupidQuote {
+  uid               Int        @id @default(autoincrement())
+  text              String     @db.VarChar
+  stupidFace        StupidFace @relation(fields: [stupidFaceAssetId], references: [assetId])
+  stupidFaceAssetId Int        @unique @map("stupid_face_asset_id")
+  hodler            Hodler     @relation(fields: [hodlerUid], references: [uid])
+  hodlerUid         Int        @map("hodler_uid")
+  createdAt         DateTime?  @default(now()) @map("created_at")
+  updatedAt         DateTime?  @updatedAt @map("updated_at")
+
+  @@map("stupid_quote")
+}
+
+model StupidStory {
+  uid               Int        @id @default(autoincrement())
+  text              String     @db.Text()
+  stupidFace        StupidFace @relation(fields: [stupidFaceAssetId], references: [assetId])
+  stupidFaceAssetId Int        @unique @map("stupid_face_asset_id")
+  hodler            Hodler     @relation(fields: [hodlerUid], references: [uid])
+  hodlerUid         Int        @map("hodler_uid")
+  createdAt         DateTime?  @default(now()) @map("created_at")
+  updatedAt         DateTime?  @updatedAt @map("updated_at")
+
+  @@map("stupid_story")
+}
+
 model RandomAttributes {
   uid                Int        @id @default(autoincrement())
   stupidFace         StupidFace @relation("randomAttributes", fields: [stupidFaceAssetId], references: [assetId])
-  stupidFaceAssetId  Int        @unique
+  stupidFaceAssetId  Int        @unique @map("stupid_face_asset_id")
   stupidityLevel     String     @map("stupidity_level")
   character          String
   quirk              String
   favouriteMovie     String     @map("favourite_movie")
   placeToSleep       String     @map("place_to_sleep")
   relatedFace        StupidFace @relation("relation", fields: [relatedFaceAssetId], references: [assetId])
-  relatedFaceAssetId Int        @unique
+  relatedFaceAssetId Int        @unique @map("related_face_asset_id")
   relation           String
 
   @@map("random_attributes")

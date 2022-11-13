@@ -1,7 +1,10 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { DiscordHodler, Prisma, PrismaClient, StupidQuote } from '@prisma/client';
 import express from 'express';
+import axios from 'axios';
+import algosdk from 'algosdk';
 
 const prisma = new PrismaClient();
+const indexerClient = new algosdk.Indexer('', 'https://algoindexer.algoexplorerapi.io/', 443);
 const app = express();
 
 app.use(express.json());
@@ -23,6 +26,94 @@ app.get(`/hodler/:id`, async (req, res) => {
     res.json(hodler);
 });
 
+app.get('/daily-info/:userDiscordId', async (req, res) => {
+    try {
+        const discordHodler = await getDiscordHodler(req.params.userDiscordId);
+
+        if(!discordHodler) {
+            res.sendStatus(404)
+        } else {
+            const weatherData = await getWeatherData();
+            const dailyTransactionsCount = await getDailyTransactionCount(discordHodler);
+            const stupidQuote = await getRandomStupidQuote();
+    
+            const dailyInfo = {
+                weather: weatherData,
+                dailyTransactions: dailyTransactionsCount,
+                stupidQuote: stupidQuote
+            }
+            res.json(dailyInfo);
+        }
+    } catch (error) {
+        console.error(error);
+        res.sendStatus(500)
+    }
+});
+
 const server = app.listen(3000, () => {
     console.log(`🚀 Server ready at: http://localhost:3000`);
 });
+
+async function getDiscordHodler(discorHodlerdId: string): Promise<DiscordHodler|null> {
+    return await prisma.discordHodler.findUnique({
+        where: {
+            discordId: discorHodlerdId
+        }
+    });
+}
+
+async function getDailyTransactionCount(discordHodler: DiscordHodler): Promise<string|null> {
+    if(!discordHodler?.publicKey) return null;
+
+    const now = new Date();
+    const yesterday = new Date(now.setDate(now.getDate() - 1));
+    const tnxCount = await indexerClient.lookupAccountTransactions(discordHodler.publicKey).afterTime(yesterday.toISOString()).do();
+
+    return tnxCount?.transactions?.length.toString();
+
+}
+
+async function getRandomStupidQuote(): Promise<StupidQuote|null> {
+    const stupidQuotes = await prisma.stupidQuote.findMany({include: {stupidFace: true}});
+
+    if(stupidQuotes.length == 0) return null;
+
+    return stupidQuotes[Math.floor(Math.random()*stupidQuotes.length)]
+}
+
+async function getWeatherData() {
+    const geonamesResponse = await axios.get('https://api.3geonames.org/?randomland=yes');
+
+    const regexLatt = /<latt>(.*?)<\/latt>/g;
+    const regexLongt = /<longt>(.*?)<\/longt>/g;
+    const regexCity = /<city>(.*?)<\/city>/g;
+    const regexState = /<state>(.*?)<\/state>/g;
+    const latt = regexLatt.exec(geonamesResponse.data)?.at(1);
+    const longt = regexLongt.exec(geonamesResponse.data)?.at(1);
+    const city = regexCity.exec(geonamesResponse.data)?.at(1) || '';
+    const state = regexState.exec(geonamesResponse.data)?.at(1);
+    console.log('Weather data requested:', { latt, longt, city, state });
+
+    if (!latt || !longt) {
+        throw new Error("Lat/Lng not set correctly!");
+    }
+
+    if (!process.env.OPENWEATHERMAP_API_KEY) {
+        throw new Error("OWM API Key not set!");
+    }
+
+    const owmResponse = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${latt}&lon=${longt}&units=metric&appid=${process.env.OPENWEATHERMAP_API_KEY}`);
+    const airPolutionResponse = await axios.get(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${latt}&lon=${longt}&appid=${process.env.OPENWEATHERMAP_API_KEY}`);
+
+    return {
+        temp: owmResponse.data?.main?.temp,
+        humidity: owmResponse.data?.main?.humidity,
+        description: owmResponse.data?.weather?.at(0)?.description,
+        location: {
+            city: city,
+            state: state,
+            link: `https://maps.google.com/maps/place/${encodeURIComponent(`${latt},${longt}`)}/@${latt},${longt},12z`,
+            airPollution: airPolutionResponse.data?.list?.at(0)
+        }
+    }
+}

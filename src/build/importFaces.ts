@@ -8,6 +8,8 @@ const prisma = new PrismaClient();
 
 async function main() {
     const healtState = await indexerClient.makeHealthCheck().do();
+    console.info(`Indexer HealthState: ${JSON.stringify(healtState)}`)    
+
     const accountInfo = await algodClient.accountInformation(address).do();
     const createdAssets = accountInfo['created-assets'];
 
@@ -20,9 +22,16 @@ async function main() {
         const assetBlock = await indexerClient.lookupBlock(assetInfo['asset']['created-at-round']).do();
         const assetTimestamp = assetBlock['timestamp'];
 
-        console.log(asset['params']['name']);
-        console.log(new Date(assetTimestamp));
-        const blub = await prisma.stupidFace.create({
+        const faceExists = await prisma.stupidFace.findUnique({
+            where: {
+                assetId: assetId
+            }});
+
+        console.info(`${asset['params']['name']} - exists: ${faceExists ? 'true' : 'false'}`);
+        
+        if(faceExists) continue;
+        
+        const response = await prisma.stupidFace.create({
             data: {
                 assetId: assetId,
                 assetName: asset['params']['name'],
@@ -33,9 +42,10 @@ async function main() {
                 number: parseInt(asset['params']['name'].split('#').at(-1)),
             }
         })
-        console.log(blub)
+        console.log(response)
     }
-
 }
 
 main();
+
+export {main}
