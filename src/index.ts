@@ -26,14 +26,16 @@ app.get(`/hodler/:id`, async (req, res) => {
     res.json(hodler);
 });
 
-app.get('/daily-info/:userDiscordId', async (req, res) => {
+app.get('/daily-info/:userDiscordId/:countryCode?', async (req, res) => {
     try {
         const discordHodler = await getDiscordHodler(req.params.userDiscordId);
+        console.info(`Daily-Info Request by ${req.params.userDiscordId}`)
 
         if(!discordHodler) {
+            console.info('unauthenticated request.')
             res.sendStatus(404)
         } else {
-            const weatherData = await getWeatherData();
+            const weatherData = await getWeatherData(req.params.countryCode);
             const dailyTransactionsCount = await getDailyTransactionCount(discordHodler);
             const stupidQuote = await getRandomStupidQuote();
     
@@ -46,6 +48,29 @@ app.get('/daily-info/:userDiscordId', async (req, res) => {
         }
     } catch (error) {
         console.error(error);
+        res.sendStatus(500)
+    }
+});
+
+app.post('/daily-info/persist', async (req, res) => {
+    console.info(`daily info persist request incoming`);
+    console.log(`Trying to persist: ${req.body.authorId}`);
+    try {
+        const discordHodler = await prisma.discordHodler.update({
+                where: {
+                    discordId: req.body.authorId
+                },
+                data: {
+                    lastGm: new Date()
+                }
+            }
+        )
+        console.log(`persisted.`)
+        res.sendStatus(200)
+        //console.log(discordHodler);
+    } catch (error) {
+        //console.error(error);
+        console.error(`Error with persisting.`)
         res.sendStatus(500)
     }
 });
@@ -81,8 +106,8 @@ async function getRandomStupidQuote(): Promise<StupidQuote|null> {
     return stupidQuotes[Math.floor(Math.random()*stupidQuotes.length)]
 }
 
-async function getWeatherData() {
-    const geonamesResponse = await axios.get('https://api.3geonames.org/?randomland=yes');
+async function getWeatherData(countryCode?: string) {
+    const geonamesResponse = await axios.get(`https://api.3geonames.org/?randomland=${countryCode || 'yes'}`);
 
     const regexLatt = /<latt>(.*?)<\/latt>/g;
     const regexLongt = /<longt>(.*?)<\/longt>/g;
@@ -92,7 +117,7 @@ async function getWeatherData() {
     const longt = regexLongt.exec(geonamesResponse.data)?.at(1);
     const city = regexCity.exec(geonamesResponse.data)?.at(1) || '';
     const state = regexState.exec(geonamesResponse.data)?.at(1);
-    console.log('Weather data requested:', { latt, longt, city, state });
+    console.log(`Weather data requested:`, JSON.stringify({ latt, longt, city, state }));
 
     if (!latt || !longt) {
         throw new Error("Lat/Lng not set correctly!");
