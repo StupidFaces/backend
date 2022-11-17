@@ -123,12 +123,12 @@ async function getWeatherData(countryCode?: string) {
         throw new Error("Lat/Lng not set correctly!");
     }
 
-    if (!process.env.OPENWEATHERMAP_API_KEY) {
+    if (!process.env.BACKEND_OPENWEATHERMAP_API_KEY) {
         throw new Error("OWM API Key not set!");
     }
 
-    const owmResponse = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${latt}&lon=${longt}&units=metric&appid=${process.env.OPENWEATHERMAP_API_KEY}`);
-    const airPolutionResponse = await axios.get(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${latt}&lon=${longt}&appid=${process.env.OPENWEATHERMAP_API_KEY}`);
+    const owmResponse = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${latt}&lon=${longt}&units=metric&appid=${process.env.BACKEND_OPENWEATHERMAP_API_KEY}`);
+    const airPolutionResponse = await axios.get(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${latt}&lon=${longt}&appid=${process.env.BACKEND_OPENWEATHERMAP_API_KEY}`);
 
     return {
         temp: owmResponse.data?.main?.temp,

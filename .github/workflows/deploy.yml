@@ -1,0 +1,25 @@
+name: Stupid Backend Deployment
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Deploy using ssh
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.STUPID_BACKEND_PRIVATE_KEY }}
+        port: 4422
+        script: |
+          cd /home/grex/app/backend
+          git pull origin master
+          git status
+          npm install
+          npx prisma migrate deploy
+          npm run build
+          pm2 restart stupid_backend
