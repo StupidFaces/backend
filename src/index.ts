@@ -26,6 +26,22 @@ app.get(`/hodler/:id`, async (req, res) => {
     res.json(hodler);
 });
 
+app.get(`/faceofthemonths`, async (req, res) => {
+    const faceOfTheMonths = await prisma.stupidFace.findMany({
+        where: {
+            fotmWins: {some: {}}
+        },
+        select: {
+            assetId: true,
+            fotmWins: {
+                select: {
+                    monthYear: true
+                }
+            }}
+    })
+    res.json(faceOfTheMonths);
+});
+
 app.get('/daily-info/:userDiscordId/:countryCode?', async (req, res) => {
     try {
         const discordHodler = await getDiscordHodler(req.params.userDiscordId);
@@ -65,12 +81,10 @@ app.post('/daily-info/persist', async (req, res) => {
                 }
             }
         )
-        console.log(`persisted.`)
+        console.log(`daily-info persisted.`)
         res.sendStatus(200)
-        //console.log(discordHodler);
     } catch (error) {
-        //console.error(error);
-        console.error(`Error with persisting.`)
+        console.error(`Error while persisting daily-info.`)
         res.sendStatus(500)
     }
 });
