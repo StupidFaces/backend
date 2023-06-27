@@ -4,7 +4,8 @@ import axios from 'axios';
 import algosdk from 'algosdk';
 
 const prisma = new PrismaClient();
-const indexerClient = new algosdk.Indexer('', 'https://algoindexer.algoexplorerapi.io/', 443);
+// const indexerClient = new algosdk.Indexer('', 'https://algoindexer.algoexplorerapi.io/', 443);
+const indexerClient = new algosdk.Indexer('', 'https://mainnet-idx.algonode.network', 443);
 const app = express();
 
 app.use(express.json());
